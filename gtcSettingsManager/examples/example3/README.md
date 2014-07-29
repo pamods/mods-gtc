@@ -45,4 +45,4 @@ settingHelper.getInitialSetting('gtc_example1_s3','default value x');
 
 ***************************************************************************************************************************************************
 ### Example image ###
-![this image is missing](https://github.com/pamods/mods-gtc/blob/master/gtcSettingsManager/examples/example1/example3_final.png "UI settings example 3")
+![this image is missing](https://github.com/pamods/mods-gtc/blob/master/gtcSettingsManager/examples/example3/example3_final.png "UI settings example 3")
