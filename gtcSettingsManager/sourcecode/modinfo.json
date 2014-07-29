@@ -3,7 +3,7 @@
     "identifier": "com.pa.gtc.settingsmanager",
     "display_name": "GTC Settings Manager",
     "description": "Framework for extended settings",
-    "author": "GTC-Gonzo",
+    "author": "gonzo4711",
     "version": "1.0",
     "signature": "not yet implemented",
     "priority": 11,
@@ -22,7 +22,7 @@
         "coui://ui/mods/gtcSettingsManager/gtcSettingsManager_global.js"
     ],
     "requires": [],
-    "date": "2014/06/19",
-    "build": "67523",
+    "date": "2014/07/29",
+    "build": "69564",
     "enabled": true
 }
