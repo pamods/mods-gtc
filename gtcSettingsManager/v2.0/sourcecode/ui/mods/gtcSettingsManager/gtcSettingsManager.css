@@ -1,0 +1,87 @@
+.subgroupContainer{
+	float: none;
+	margin-bottom: 10px;
+	padding-left: 15px;
+	width: 100%;
+}
+	.subgroupContainer h2,
+	.subgroupContainer h3{
+		margin-left: -10px;
+		float: none;
+	}
+
+	.subgroupContainer .form-group{
+		float: left;
+		margin-right: 20px;
+		width: 280px;
+	}
+		.subgroupContainer .form-group .slider.slider-horizontal{
+			width: 280px;
+		}
+		.subgroupContainer .form-group .bootstrap-select,
+		.subgroupContainer .bootstrap-select.form-control:not([class*="span"]){
+			width: 280px;
+			display: block;
+		}
+
+		.subgroupContainer .form-group.columns1{
+			width: 280px;
+		}
+		.subgroupContainer .form-group.columns2{
+			width: 580px;
+		}
+		.subgroupContainer .form-group.columns3{
+			width: 880px;
+		}
+		.subgroupContainer .form-group.columns4{
+			width: 1180px;
+		}
+		.subgroupContainer .form-group.rows1{
+			height: 62px;
+		}
+		.subgroupContainer .form-group.rows2{
+			height: 156px;
+		}
+		.subgroupContainer .form-group.rows3{
+			height: 250px;
+		}
+		.subgroupContainer .form-group.rows4{
+			height: 344px;
+		}
+		.subgroupContainer .form-group.rows5{
+			height: 438px;
+		}
+
+.subgroupContainerClear{
+	clear: both;
+}
+
+.textOuter{
+	box-shadow: 0px 0px 40px rgba(20, 122, 161, 0.3);
+	display: block;
+}
+
+.textField{	
+	display: block;
+	width: 100%;
+	box-shadow: inset 0px 0px 8px rgba(255,255,255,.50);
+	background: #000;
+	height: 38px;
+
+	border: 1px solid #4D4D4D;
+    color: #fff;
+    padding: 4px 10px;
+    font-family: 'Armata Regular';
+}
+
+.section_content_top_bar{
+	display: block!important;
+}
+
+.subContent .nav-pills{
+	margin-top: 20px;
+}
+
+.subContent .nav-pills li a{
+	font-size: 11px!important;
+}

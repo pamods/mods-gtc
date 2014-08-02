@@ -1,4 +1,4 @@
-PA-gtcSettingsManager
+PA-gtcSettingsManager v1.0 - DEPRECATED
 =====================
 
 Planetary Annihilation Mod - Manage Settings, Tabs and SubGroups
