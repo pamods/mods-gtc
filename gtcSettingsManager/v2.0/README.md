@@ -155,6 +155,8 @@ settingsManager.tab.add("My test tab").group.add("Private Settings").item.add("p
 ### Tabs (root) ###
 Tabs are already known. They are the main container to access the settings (items).
 
+**IMPORTANT:** The tabs 'twitch','server','keyboard' **cannot** be managed, while special behaviours exist.
+
 #### Creating a tab ####
 The function will return the new tab object, so it can be stored also in a _var_. Don't forget to _assign_ this tab, if its a 'root' (top-level) tab. 
 

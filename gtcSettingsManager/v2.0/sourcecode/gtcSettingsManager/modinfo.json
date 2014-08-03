@@ -12,6 +12,7 @@
     "category": [
         "Framework"
     ],
+    "icon": "http://pamods.github.io/icons/gtcsettingsm.png",
     "scenes": {
         "settings": [
             "coui://ui/mods/gtcSettingsManager/gtcSettingsManager.js",
