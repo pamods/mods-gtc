@@ -2,14 +2,14 @@
  * gtcSettingsManager 				*
  ************************************
  * gtcSettingsManager_global.js		*
- * @author: gtc - gonzo				*
- * @version: 1.0 (2014-06-18)		*
+ * @author: gtc - gonzo4711			*
+ * @version: 2.0 (2014-08-02)		*
  ************************************/
 
-var settingHelper;
+var settingsHelper;
 
 (function(){
-	var settingHelperClass = function(){
+	var gtcSettingsHelperClass = function(){
 		var self = this;
 
 		var locateSetting = function(id){
@@ -86,22 +86,6 @@ var settingHelper;
 			}
 			return false;
 		};
-		self.transferSetting = function(id,fromTab,toTab){
-			if (id == "" || fromTab == "" || toTab == ""){
-				return false;
-			}
-			// check for existing setting
-			if (!self.isSetting(id,fromTab)){
-				return false;
-			}
-
-			// set new setting
-			self.setSetting(id,toTab,self.getSetting(id,fromTab));
-
-			// delete old setting
-			self.removeSetting(id,fromTab);
-			return true;
-		};
 		self.getInitialSetting = function(id,defaultValue,tabName){
 			((!tabName)?tabName=false:null);
 			var setRes = self.getSetting(id,tabName);
@@ -141,5 +125,5 @@ var settingHelper;
 			model.getInitialSetting = self.getInitialSetting;
 		}
 	};
-	settingHelper = new settingHelperClass();
+	settingsHelper = new gtcSettingsHelperClass();
 })();

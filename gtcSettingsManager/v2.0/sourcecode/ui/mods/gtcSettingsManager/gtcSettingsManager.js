@@ -84,7 +84,7 @@ var settingsManager;
 			onClick: function(){}
 		};
 
-		self.addOption = function(optionKey,optionData){
+		self.setOption = function(optionKey,optionData){
 			self.opts[optionKey] = optionData;
 		};
 
@@ -339,7 +339,7 @@ var settingsManager;
 			parentId: null
 		};
 
-		self.addOption = function(optionKey,optionData){
+		self.setOption = function(optionKey,optionData){
 			self.opts[optionKey] = optionData;
 		};
 
@@ -442,17 +442,21 @@ var settingsManager;
 
 					// unpack 'defOptions'
 					if (!_.isUndefined(self.opts.defOptions)){
-						self.opts.optArray = [];
 						_(self.opts.defOptions.options).forEach(function(oValue,oPos){
 							var dText = oValue;
 							if (!_.isUndefined(self.opts.defOptions.optionsText[oPos])){
 								dText = self.opts.defOptions.optionsText[oPos];
 							}
 							self.opts.options[oValue] = dText;
-							self.opts.optArray.push({value: oValue, text: dText})
 						});
 						delete self.opts.defOptions;
 					}
+
+					// create options
+					self.opts.optArray = [];
+					_(self.opts.options).forEach(function(oValue,oPos){
+						self.opts.optArray.push({value: oValue, text: oValue});
+					});
 				break;
 				case "slider":
 					if (_.isUndefined(self.opts.max)){
@@ -485,16 +489,23 @@ var settingsManager;
 					// clear label
 					self.showLabel = false;
 
+					// do not assign this to API
+					self.opts.assignItem = false;
+
 					self.text = ko.observable(self.opts.text);
 				break;
 				case "button":
 					// clear label
 					self.showLabel = false;
+
+					// do not assign this to API
+					self.opts.assignItem = false;
 				break;
 				default:
 					console.error("Unknown itemType: '"+self.type()+"'. Item is invalid!");
 					self.id = 'error';
 					self.visible(false);
+					self.opts.assignItem = false;
 				break;
 			}
 		};
@@ -515,10 +526,12 @@ var settingsManager;
 			}
 		};
 
-		self.addOption = function(optionKey,optionData){
+		self.setOption = function(optionKey,optionData){
 			self.opts[optionKey] = optionData;
 		};
 
+
+		// this function will assign the item to the settings-API and provide the 'default'-value
 		self.assign = function(assignObj){
 			if (self.opts.assigned){
 				return true;
@@ -544,11 +557,12 @@ var settingsManager;
                 self.value.subscribe(self.opts.callback);
 			}
 
-			// assign to this obj
+			// assign to this obj (create a new tabGroup)
 			if (_.isUndefined(assignObj[self.opts.parentId])){
 				assignObj[self.opts.parentId] = {};
 			}
 
+			// assign to this obj
 			assignObj[self.opts.parentId][self.id] = self.value;
 			self.opts.assigned = true;
 			return true;
@@ -570,7 +584,7 @@ var settingsManager;
 		var _excludeTabs = ['twitch','server','keyboard'];
 
 		// templates to overwrite DOM
-		var _templates = {
+		var _tpl = {
 			'tabs': {
 				type: 'content',
 				selector: '.tabs ul.nav-pills:first',
@@ -579,7 +593,7 @@ var settingsManager;
 			'subtabs': {
 				type: 'after',
 				selector: '.tab_cont:first',
-				data: '<div class="tab_cont subContent" data-bind="fadeVisible: settingsManager.tab.activeSubs($root.activeSettingElement())"><div class="tabs"><!-- ko eachProp: {data: settingElements, as: \'cElement\', asKey: \'elKey\'} --><ul class="nav-pills" data-bind="visible: cElement.hasActiveSubs && elKey === $root.activeSettingElement()"><!-- ko eachProp: {data: cElement.sub.getAll(), as: \'cSub\', asKey: \'cSubKey\'} --><li data-bind="css: { \'active\': cSubKey == $root.activeSettingSubElement($parent.elKey)() }, visible: cSub.status"><a data-toggle="pill" href="#ui" data-bind="click_sound: \'default\', rollover_sound: \'default\', text: cSub.title(), click: function () { model.activeSettingSubElement($parent.elKey)(cSubKey) }"></a></li><!-- /ko --></ul><!-- /ko --></div></div>'
+				data: '<div class="tab_cont subContent" data-bind="fadeVisible: settingsManager.tab.activeSubs($root.activeSettingElement()), slideMode: \'flex\'"><div class="tabs"><!-- ko eachProp: {data: settingElements, as: \'cElement\', asKey: \'elKey\'} --><ul class="nav-pills" data-bind="visible: cElement.hasActiveSubs && elKey === $root.activeSettingElement()"><!-- ko eachProp: {data: cElement.sub.getAll(), as: \'cSub\', asKey: \'cSubKey\'} --><li data-bind="css: { \'active\': cSubKey == $root.activeSettingSubElement($parent.elKey)() }, visible: cSub.status"><a data-toggle="pill" href="#ui" data-bind="click_sound: \'default\', rollover_sound: \'default\', text: cSub.title(), click: function () { model.activeSettingSubElement($parent.elKey)(cSubKey) }"></a></li><!-- /ko --></ul><!-- /ko --></div></div>'
 			},
 			'settingOut': {
 				type: 'prepend',
@@ -631,7 +645,7 @@ var settingsManager;
 
 		// replace template data
 		var _replaceTemplates = function(){
-			_.forEach(_templates,function(tplData){
+			_.forEach(_tpl,function(tplData){
 				switch (tplData.type){
 					case "content":
 						$(tplData.selector).html(tplData.data);
@@ -826,8 +840,6 @@ var settingsManager;
 		self._refresher = ko.computed(function(){
 			self._refreshWatcher();
 			_prepareElements();
-			console.log("REFRESHER CALLED!");
-			//return _cRefresher(_cRefresher()+1);
 		});
 
 		/*********************
@@ -846,8 +858,7 @@ var settingsManager;
 			return retGroups;
 		});
 
-		//cModel.settingGroups = ko.observableArray(_excludeTabs);
-
+		// this is the obs. for the new active tab
 		cModel.activeSettingElement = ko.observable().extend({ session: 'active_setting_element' });
 
 		var _activeSettingSubElements = {};
@@ -866,6 +877,7 @@ var settingsManager;
 			return true;
 		};
 
+		// watcher for old tabs - includes break func for 'new' tabs
 		var _autoSettingTabWatcherOld = ko.computed(function(){
 			var cValue = cModel.activeSettingsGroupIndex();
 			if (cValue < 0){
@@ -875,6 +887,7 @@ var settingsManager;
 			return true;
 		});
 
+		// watcher for new tabs - includes break func for 'old' tabs
 		var _autoSettingTabWatcherNew = ko.computed(function(){
 			var cValue = cModel.activeSettingElement();
 			if (cValue == "none"){
@@ -884,19 +897,17 @@ var settingsManager;
 			return true;
 		});
 
+		// the new obs. list for all assigned settings
 		cModel.settingElements = ko.computed(function() {
 		 	self._refreshWatcher();
-		 	console.log("settingList CALLED!");
 
-		 	// reassign observableMap
+		 	// reassign observableMap, only overwrite 'assigned' tabs/items
 		 	_.forEach(_settingsObservableMap,function(oData,oKey){
 		 		api.settings.observableMap[oKey] = oData;
 		 	});
 		 	
 		 	return self.tab.getAll(true);
         });
-
-        self.om = _settingsObservableMap;
 
 		// INIT
         _init();
@@ -953,25 +964,40 @@ if (_.isUndefined(ko.bindingHandlers["eachProp"])){
 // add a binding to fade a container up 'n down - fadeVisible
 if (_.isUndefined(ko.bindingHandlers["fadeVisible"])){
 	ko.bindingHandlers.fadeVisible = {
-	    init: function(element, valueAccessor) {
+	    init: function(element, valueAccessor, allBindingsAccessor) {
+	    	// set after slide mode
+	    	var slideMode = allBindingsAccessor.get('slideMode') || "block";
+
 	        // Initially set the element to be instantly visible/hidden depending on the value
 	        var value = valueAccessor();
 	        if (ko.unwrap(value)){
-	        	$(element).slideDown(500);
+	        	$(element).slideDown(500,function(){
+	        		$(element).css("display",slideMode);
+	        	});
 	        }else{
 	        	$(element).slideUp(500);
 	        }
 	    },
-	    update: function(element, valueAccessor) {
+	    update: function(element, valueAccessor, allBindingsAccessor) {
+	    	// set after slide mode
+	    	var slideMode = allBindingsAccessor.get('slideMode') || "block";
+
 	        // Whenever the value subsequently changes, slowly fade the element in or out
 	        var value = valueAccessor();
-	        ko.unwrap(value) ? $(element).slideDown(500) : $(element).slideUp(500);
+	        if (ko.unwrap(value)){
+	        	$(element).slideDown(500,function(){
+	        		$(element).css("display",slideMode);
+	        	});
+	        }else{
+	        	$(element).slideUp(500);
+	        }
 	    }
 	};
 }
 
 
 // this fixes the 'selectPicker' - on selectedItem BUG (https://forums.uberent.com/threads/bug-setting-ui.62508/)
+// toDo: remove after next PA-build
 if (_.isUndefined(ko.bindingHandlers.selectPicker.update)){
 	ko.bindingHandlers.selectPicker.update = function (element, valueAccessor) {
         $(element).selectpicker('refresh');
