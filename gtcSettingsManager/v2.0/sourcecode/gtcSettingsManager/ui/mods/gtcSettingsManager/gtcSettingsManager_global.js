@@ -3,7 +3,7 @@
  ************************************
  * gtcSettingsManager_global.js		*
  * @author: gtc - gonzo4711			*
- * @version: 2.0 (2014-08-02)		*
+ * @version: 2.1 (2014-08-04)		*
  ************************************/
 
 var settingsHelper;

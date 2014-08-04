@@ -3,7 +3,7 @@
  ************************************
  * gtcSettingsManager.js			*
  * @author: gtc - gonzo4711			*
- * @version: 2.0 (2014-08-02)		*
+ * @version: 2.1 (2014-08-04)		*
  ************************************/
 
 var settingsManager;
@@ -454,8 +454,8 @@ var settingsManager;
 
 					// create options
 					self.opts.optArray = [];
-					_(self.opts.options).forEach(function(oValue,oPos){
-						self.opts.optArray.push({value: oValue, text: oValue});
+					_(self.opts.options).forEach(function(oValue,oKey){
+						self.opts.optArray.push({value: oKey, text: oValue});
 					});
 				break;
 				case "slider":
@@ -554,7 +554,7 @@ var settingsManager;
 			// assign value to 'settings-API'
 			self.value = ko.observable().extend({ setting: { 'group': self.opts.parentId, 'key': self.id } });
 			if (!_.isUndefined(self.opts.callback)){
-                self.value.subscribe(self.opts.callback);
+            	self.value.subscribe(self.opts.callback);
 			}
 
 			// assign to this obj (create a new tabGroup)
@@ -577,18 +577,38 @@ var settingsManager;
 	var gtcSettingsManagerClass = function(){
 		var self = this;
 
+		// hold a refresh of DOM elements
+		self.hold = ko.observable(false);
+
+		// the stored elements (tabs)
+		self.elements = {};
+
+		// refreshWatcher, to refresh computed functions
+		self._refreshWatcher = ko.observable(0);
+
+
 		// old functions storage
 		var _old = {};
 
 		// exclude these tabs from 'settingsManager'
 		var _excludeTabs = ['twitch','server','keyboard'];
+		// create a invalid tab list, out of the 'defaults'
+		var _invalidTabs = [];
+		_.forEach(cModel.settingGroups(),function(cTab){
+			if (_.contains(_excludeTabs,cTab)){
+				return;
+			}
+			_invalidTabs.push(cTab);
+		});
+
+
 
 		// templates to overwrite DOM
 		var _tpl = {
 			'tabs': {
 				type: 'content',
 				selector: '.tabs ul.nav-pills:first',
-				data: '<!-- ko eachProp: {data: settingElements, as: \'cElement\', asKey: \'elKey\'} --><li data-bind="css: { \'active\': elKey == $root.activeSettingElement() }, visible: cElement.visible"><a data-toggle="pill" href="#ui" data-bind="click_sound: \'default\', rollover_sound: \'default\', text: cElement.title, click: function () { model.activeSettingElement(elKey) }"></a></li><!-- /ko --><!-- ko foreach: settingGroups --><li data-bind="css: { \'active\': $index() === $root.activeSettingsGroupIndex() }, visible: (!_.isUndefined($data)) "><a data-toggle="pill" href="#ui" data-bind="click_sound: \'default\', rollover_sound: \'default\', text: $data, click: function () { model.activeSettingsGroupIndex($index()) }"></a></li><!-- /ko -->'
+				data: '<!-- ko eachProp: {data: settingElements, as: \'cElement\', asKey: \'elKey\'} --><li data-bind="css: { \'active\': elKey == $root.activeSettingElement() }, visible: cElement.visible"><a data-toggle="pill" href="#ui" data-bind="click_sound: \'default\', rollover_sound: \'default\', text: cElement.title, click: function () { model.activeSettingElement(elKey) }"></a></li><!-- /ko --><!-- ko foreach: settingGroups --><li data-bind="css: { \'active\': $index() === $root.activeSettingsGroupIndex() }, visible: settingsManager.isValidTab($data) "><a data-toggle="pill" href="#ui" data-bind="click_sound: \'default\', rollover_sound: \'default\', text: $data, click: function () { model.activeSettingsGroupIndex($index()) }"></a></li><!-- /ko -->'
 			},
 			'subtabs': {
 				type: 'after',
@@ -598,23 +618,26 @@ var settingsManager;
 			'settingOut': {
 				type: 'prepend',
 				selector: '.container_centered.container_settings:first',
-				data: '<!-- ko eachProp: {data: settingElements, as: \'cElement\', asKey: \'elKey\'} --><div class="option-container" data-bind="visible: cElement.visible() && elKey == $root.activeSettingElement()"><!-- ko eachProp: {data: cElement.sub.getAll(), as: \'cSub\', asKey: \'cSubKey\'} --><div class="option-subtab-container" data-bind="visible: cSub.visible() && cSubKey == $root.activeSettingSubElement($parent.elKey)()"><!-- ko eachProp: {data: cSub.group.getAll(), as: \'cGroup\', asKey: \'cGroupKey\'} --><div class="subgroupContainer" data-bind="visible: cGroup.visible"><h2 data-bind="text: cGroup.title, visible: cGroup.status()"></h2><div class="subgroupContainerItems"><!-- ko eachProp: {data: cGroup.item.getAll(), as: \'cItem\'} --><div class="form-group" data-bind="attr:{class: \'form-group columns\'+cItem.columns()+\' rows\'+cItem.rows()}, visible: cItem.visible"><label for="settings_item" data-bind="text: cItem.title, visible: cItem.showLabel,attr: {for: \'setting_\'+cItem.id}"></label><!-- ko if:  cItem.type() == \'select\' --><select class="selectpicker form-control" id="settings_item" name="dropdown" data-bind="attr:{id: \'setting_\'+cItem.id},options: cItem.opts.optArray, optionsValue: function (item) { return item.value }, optionsText: function (item) { return item.text }, selectPicker: cItem.value"></select><!-- /ko --><!-- ko if:  cItem.type() === \'slider\' --><input type="text" id="Text1" class="slider" value=""data-slider-handle="square" data-slider-orientation="horizontal" data-slider-selection="none" data-slider-tooltip="hide"data-bind="slider: { value: cItem.value, options: function(){return cItem.opts;} }" /><!-- /ko --><!-- ko if:  cItem.type() === \'textfield\' --><span class="textOuter"><input type="textInput" id="settings_item" class="textField" value="" data-bind="value: cItem.value,event: {click: cItem.opts.onClick}" ></span><!-- /ko --><!-- ko if:  cItem.type() === \'text\' --><span class="textContainer" data-bind="text: cItem.text"></span><!-- /ko --><!-- ko if:  cItem.type() === \'button\' --><div class="btn_std" data-bind="click: cItem.opts.onClick, click_sound: \'default\', rollover_sound: \'default\', css: { disabled: (!cItem.status()) }"><div class="btn_label"><span data-bind="text: cItem.title">button</span></div></div><!-- /ko --></div><!-- /ko --></div><div class="subgroupContainerClear"></div></div><!-- /ko --></div><!-- /ko --></div><!-- /ko -->'
+				data: '<!-- ko eachProp: {data: settingElements, as: \'cElement\', asKey: \'elKey\'} --><div class="option-container" data-bind="attr:{id: \'tab-\'+cElement.id },visible: cElement.visible() && elKey == $root.activeSettingElement()"><!-- ko eachProp: {data: cElement.sub.getAll(), as: \'cSub\', asKey: \'cSubKey\'} --><div class="option-subtab-container" data-bind="visible: cSub.visible() && cSubKey == $root.activeSettingSubElement($parent.elKey)()"><!-- ko eachProp: {data: cSub.group.getAll(), as: \'cGroup\', asKey: \'cGroupKey\'} --><div class="subgroupContainer" data-bind="visible: cGroup.visible"><h2 data-bind="text: cGroup.title, visible: cGroup.status()"></h2><div class="subgroupContainerItems"><!-- ko eachProp: {data: cGroup.item.getAll(), as: \'cItem\'} --><div class="form-group" data-bind="attr:{class: \'form-group columns\'+cItem.columns()+\' rows\'+cItem.rows()}, visible: cItem.visible"><label for="settings_item" data-bind="text: cItem.title, visible: cItem.showLabel,attr: {for: \'setting_\'+cItem.id}"></label><!-- ko if:  cItem.type() == \'select\' --><select class="selectpicker form-control" id="settings_item" name="dropdown" data-bind="attr:{id: \'setting_\'+cItem.id},options: cItem.opts.optArray, optionsValue: function (item) { return item.value }, optionsText: function (item) { return item.text }, selectPicker: cItem.value"></select><!-- /ko --><!-- ko if:  cItem.type() === \'slider\' --><input type="text" id="Text1" class="slider" value=""data-slider-handle="square" data-slider-orientation="horizontal" data-slider-selection="none" data-slider-tooltip="hide"data-bind="slider: { value: cItem.value, options: function(){return cItem.opts;} }" /><!-- /ko --><!-- ko if:  cItem.type() === \'textfield\' --><span class="textOuter"><input type="textInput" id="settings_item" class="textField" value="" data-bind="value: cItem.value,event: {click: cItem.opts.onClick}" ></span><!-- /ko --><!-- ko if:  cItem.type() === \'text\' --><span class="textContainer" data-bind="text: cItem.text"></span><!-- /ko --><!-- ko if:  cItem.type() === \'button\' --><div class="btn_std" data-bind="click: cItem.opts.onClick, click_sound: \'default\', rollover_sound: \'default\', css: { disabled: (!cItem.status()) }"><div class="btn_label"><span data-bind="text: cItem.title">button</span></div></div><!-- /ko --></div><!-- /ko --></div><div class="subgroupContainerClear"></div></div><!-- /ko --></div><!-- /ko --><span data-bind="attr: {\'data-assign\': settingsManager.assignTabCallback(cElement.id)}"></span></div><!-- /ko -->'
+			},
+			'settingFix0': {
+				type: 'prepend',
+				selector: '.option-list:first',
+				data: '<!-- ko if: settingsManager.isValidTab($index()) -->'
+			},
+			'settingFix1': {
+				type: 'append',
+				selector: '.option-list:first',
+				data: '<!-- /ko -->'
 			}
-		};
-
-		// hold a refresh
-		self.hold = ko.observable(false);
+		};		
 
 		// THE OBSERVABLE-MAP (PA-SETTINGS)
 		var _settingsObservableMap = {};
 
-		// the stored elements (tabs)
-		self.elements = {};
-
-		// refreshWatcher, to refresh computed functions
-		self._refreshWatcher = ko.observable(0);
-
+		// tab assignments
 		var _assignedTabs = [];
+		var _assignedCallbacks = {};
 		var _refreshFunc = function(refreshTabId){
 			((!refreshTabId)?refreshTabId=false:null);
 
@@ -635,6 +658,7 @@ var settingsManager;
 			_refreshFunc();
 		});
 
+		// the init function
 		var _init = function(){
 			// replace tplData
 			_replaceTemplates();
@@ -714,7 +738,7 @@ var settingsManager;
 
 			// hold updates
 			self.hold(true);
-			_(_old["settingGroups"]()).forEach(function(cTab){
+			_(_old["settingGroups"]).forEach(function(cTab){
 				if (_.contains(_excludeTabs,cTab)){
 					return;
 				}
@@ -765,6 +789,25 @@ var settingsManager;
 
 			// release hold - update once
 			self.hold(false);
+		};
+
+		var _groupIdFor = function(groupName){
+			var gId = null;
+			_(cModel.settingGroups()).forEach(function(cGroup,cIndex){
+				if (groupName == cGroup){
+					gId = cIndex;
+				}
+			});
+			return gId;
+		};
+
+		self.assignTabCallback = function(cTabId){
+			if ((!_.isUndefined(_assignedCallbacks[cTabId])) && _assignedCallbacks[cTabId].status == false){
+				_assignedCallbacks[cTabId].status = true;
+				_assignedCallbacks[cTabId].func();
+				return "registered";
+			}
+			return "unregistered";
 		};
 
 		// the tab class handlers
@@ -824,12 +867,14 @@ var settingsManager;
 				}
 				return false;
 			},
-			assign: function(tabId){
+			assign: function(tabId,callbackFunc){
+				((!callbackFunc)?callbackFunc=function(){}:null);
 				var cTab = self.tab.get(tabId);
 				if (!cTab){
 					return;
 				}
 				if (!_.contains(_assignedTabs,tabId)){
+					_assignedCallbacks[tabId] = {status: false, func: callbackFunc};
 					_assignedTabs.push(tabId);
 					_refreshElements.push(cTab._refresher);
 				}
@@ -846,17 +891,27 @@ var settingsManager;
 		 * MODEL ASSIGNMENTS *
 		 *********************/
 
-		// overwrite the old settingsGroups function, to prevent showing double-tabs
-		_old["settingGroups"] = cModel.settingGroups;
-		cModel.settingGroups = ko.computed(function(){
-			var retGroups = [];
-			_(_old["settingGroups"]()).forEach(function(cGroup,cIndex){
-				if (_.contains(_excludeTabs,cGroup)){
-					retGroups[cIndex] = cGroup;
-				}
-			});
-			return retGroups;
+		// save current settingsGroups to var
+		_old["settingGroups"] = [];
+		_(cModel.settingGroups()).forEach(function(cGroup,cIndex){
+			_old["settingGroups"].push(cGroup);
 		});
+
+		// check function for excluded tabs
+		self.isValidTab = function(tabId){
+			var tabIdent = tabId;
+
+			// get numeric tab idmode
+			if (_.isNumber(tabId)){
+				tabIdent = cModel.settingGroups()[tabId];
+			}
+
+			if (_.isUndefined(tabIdent) || _.contains(_invalidTabs,tabIdent)){
+				return false;
+			}
+
+			return true;
+		};
 
 		// this is the obs. for the new active tab
 		cModel.activeSettingElement = ko.observable().extend({ session: 'active_setting_element' });
@@ -903,11 +958,20 @@ var settingsManager;
 
 		 	// reassign observableMap, only overwrite 'assigned' tabs/items
 		 	_.forEach(_settingsObservableMap,function(oData,oKey){
+		 		// clear settingsList, first
+		 		var gId = _groupIdFor(oKey);
+		 		if (!_.isNull(gId)){
+		 			model.settingsLists()[gId] = [];
+		 		}
+		 		// assign new observables
 		 		api.settings.observableMap[oKey] = oData;
 		 	});
+		 	api.settings.observableMap = _settingsObservableMap;
 		 	
 		 	return self.tab.getAll(true);
         });
+
+        self.om = _settingsObservableMap;
 
 		// INIT
         _init();
